@@ -29,9 +29,38 @@
 		028C82712E2E3FB8003EBC15 /* Notchly AIUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Notchly AIUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		025B4B7D2E2E86CB004CD722 /* Exceptions for "Notchly AI" folder in "Notchly AITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+			);
+			target = 028C82662E2E3FB8003EBC15 /* Notchly AITests */;
+		};
+		025B4B7E2E2E86CB004CD722 /* Exceptions for "Notchly AI" folder in "Notchly AIUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+			);
+			target = 028C82702E2E3FB8003EBC15 /* Notchly AIUITests */;
+		};
+		029108CD2E2EABFD00EDD6F8 /* Exceptions for "Notchly AI" folder in "Notchly AI" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			platformFiltersByRelativePath = {
+				Assets.xcassets = (macos, );
+			};
+			target = 028C82582E2E3FB7003EBC15 /* Notchly AI */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		028C825B2E2E3FB7003EBC15 /* Notchly AI */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				029108CD2E2EABFD00EDD6F8 /* Exceptions for "Notchly AI" folder in "Notchly AI" target */,
+				025B4B7D2E2E86CB004CD722 /* Exceptions for "Notchly AI" folder in "Notchly AITests" target */,
+				025B4B7E2E2E86CB004CD722 /* Exceptions for "Notchly AI" folder in "Notchly AIUITests" target */,
+			);
 			path = "Notchly AI";
 			sourceTree = "<group>";
 		};
@@ -81,6 +110,7 @@
 				028C825A2E2E3FB7003EBC15 /* Products */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 0;
 		};
 		028C825A2E2E3FB7003EBC15 /* Products */ = {
 			isa = PBXGroup;
@@ -394,7 +424,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = "Notchly AI/Notchly_AI.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -402,6 +434,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Notchly-AI-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Notchly AI";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -421,7 +457,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = "Notchly AI/Notchly_AI.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -429,6 +467,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Notchly-AI-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Notchly AI";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

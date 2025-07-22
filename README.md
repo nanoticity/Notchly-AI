@@ -19,4 +19,4 @@ Now wait for this to install, it takes about 1 to 5 minutes. Once this installed
 2. If it says "Ollama is running" then it worked, if not then repeat the steps above.
 
 ### App Installation
-Go to the app [releases](https://github.com/nanoticity/Notchly-AI/releases/tag/v1) and download the top file. Next, navigate to Finder and go to your downloads folder. There you will see a ZIP file. Unzip it by double clicking it. After this you have to right click it, go to show package contents, then double click products, then doubel click applications, and then drag "Notchly AI.app" to you Applications folder. After this launch the app and it should be working. To check, position our mouse near the bottom of the notch and check if it works. Try a couple of prompts too just to make sure. 
+Go to the app [releases](https://github.com/nanoticity/Notchly-AI/releases/tag/v1.2) and download the top file. After this drag "Notchly AI.app" to you Applications folder. Launch the app and it should be working. To check, position our mouse near the bottom of the notch and check if it works. Try a couple of prompts too just to make sure. 

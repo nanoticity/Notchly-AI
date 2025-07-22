@@ -7,25 +7,28 @@ class HoverWindow: NSWindow {
     private var trackingArea: NSTrackingArea?
 
     // Approximate real notch size (tweak as needed)
-    private let notchSize = CGSize(width: 230, height: 90)
-    private var collapsedSize: CGSize = .zero
+    // Note: The actual "hitbox" for mouse events is determined by the window's frame.
+    // We're making the collapsedSize shorter to reduce interference.
+    private let notchSize = CGSize(width: 219, height: 37) // Original notch visual size reference
+    private var collapsedSize = CGSize(width: 219, height: 37) // Adjusted: Made collapsed window shorter
     private let expandedSize = CGSize(width: 460, height: 360)
     
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
     
     init() {
-        // Define collapsed size locally
-        let localCollapsedSize = CGSize(width: 230, height: 90) // Approximate notch size
+        // Use the new, shorter collapsedSize for initial window creation
+        let localCollapsedSize = collapsedSize
 
         guard let screen = NSScreen.main else {
             fatalError("No screen available")
         }
 
         let screenFrame = screen.frame
+        // Position the window at the top center of the screen
         let origin = CGPoint(
             x: screenFrame.midX - localCollapsedSize.width / 2,
-            y: screenFrame.maxY - localCollapsedSize.height - 2
+            y: screenFrame.maxY - localCollapsedSize.height // Adjusted for new height
         )
 
         super.init(
@@ -35,12 +38,8 @@ class HoverWindow: NSWindow {
             defer: false
         )
 
-        // Assign to stored property
-        self.collapsedSize = localCollapsedSize
-
         // Window setup
         isOpaque = false
-        // backgroundColor should be clear for NSVisualEffectView and alphaValue to show through
         backgroundColor = .clear
         level = .statusBar
         hasShadow = false
@@ -74,13 +73,12 @@ class HoverWindow: NSWindow {
         // Create an NSVisualEffectView for the blur background
         let visualEffectView = NSVisualEffectView()
         visualEffectView.frame = NSRect(origin: .zero, size: size)
-        // Choose the material that best fits your desired blur effect
-        visualEffectView.material = .hudWindow // Examples: .sidebar, .fullScreenUI, .menu, .popover
-        visualEffectView.blendingMode = .behindWindow // Blends with content behind the window
-        visualEffectView.state = .active // Ensure the effect is active
-        visualEffectView.isEmphasized = true // Can make the blur more pronounced
+        visualEffectView.material = .hudWindow
+        visualEffectView.blendingMode = .behindWindow
+        visualEffectView.state = .active
+        visualEffectView.isEmphasized = true
 
-        // MARK: - Crucial for rounding the NSVisualEffectView itself
+        // Crucial for rounding the NSVisualEffectView itself
         visualEffectView.wantsLayer = true
         visualEffectView.layer?.cornerRadius = 20 // Apply corner radius to the visual effect view's layer
         visualEffectView.layer?.masksToBounds = true // Ensure content (including blur) is clipped to the rounded corners
@@ -89,7 +87,6 @@ class HoverWindow: NSWindow {
         let hostingView = NSHostingView(rootView: view)
         hostingView.frame = visualEffectView.bounds // Make SwiftUI view fill the effect view
         hostingView.wantsLayer = true
-        // Ensure SwiftUI content's background is clear so the visual effect view shows through
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
 
         // Add the hosting view as a subview of the visual effect view
@@ -148,15 +145,14 @@ class HoverWindow: NSWindow {
         makeKeyAndOrderFront(nil)
 
         // Set the content view for the expanded state *before* animation starts
-        // This ensures the ExpandedTransitionView is present from the beginning of the fade-in
         setContentViewExpanded()
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.25 // Animation duration
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut) // Corrected timing function
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
 
-            self.animator().setFrame(newFrame, display: true) // Animate frame change
-            self.animator().alphaValue = 1.0 // Animate alpha to full opacity
+            self.animator().setFrame(newFrame, display: true)
+            self.animator().alphaValue = 1.0
         } completionHandler: {
             // No need to set content here as it's already done
         }
@@ -179,11 +175,11 @@ class HoverWindow: NSWindow {
         setContentViewCollapsed()
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.25 // Animation duration
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut) // Corrected timing function
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
 
-            self.animator().setFrame(newFrame, display: true) // Animate frame change
-            self.animator().alphaValue = 0.0 // Animate alpha to transparent
+            self.animator().setFrame(newFrame, display: true)
+            self.animator().alphaValue = 0.0
         } completionHandler: {
             // Optionally, if you want the window to be completely hidden when collapsed:
             // self.orderOut(nil)

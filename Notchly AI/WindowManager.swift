@@ -13,7 +13,7 @@ class WindowManager: ObservableObject {
             chatWindow = NSWindow(
                 contentRect: NSRect(
                     x: screen.midX - windowSize.width / 2,
-                    y: screen.maxY - windowSize.height - 40,
+                    y: screen.maxY - windowSize.height,
                     width: windowSize.width,
                     height: windowSize.height
                 ),

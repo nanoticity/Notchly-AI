@@ -1,0 +1,515 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* macOS-like Grays for Background */
+    --bg-start: #1a1a1e; /* Darker, almost black */
+    --bg-end: #25252a;   /* Slightly lighter */
+
+    /* Refined Glass colors for desktop */
+    --glass-background: rgba(255, 255, 255, 0.08); /* More subtle transparency */
+    --glass-border: rgba(255, 255, 255, 0.18);    /* Defined but not harsh */
+    --text-color: #e0e0e0;
+    --heading-color: #f0f0f0;
+    --highlight-color: rgba(255, 255, 255, 0.25); /* Gentle highlight */
+    --shadow-color: rgba(0, 0, 0, 0.4);           /* Deep, soft shadow */
+    --button-background: rgba(255, 255, 255, 0.12);
+    --button-hover: rgba(255, 255, 255, 0.2);
+    --mac-screen-bg: #0d0d0f; /* Very dark screen background */
+    --mac-text-color: #bbbbbb;
+    --mac-ai-response: #88c0d0; /* A subtle blue/cyan for AI responses */
+    --mac-notch-color: #000000; /* Pure black for the notch */
+    --app-icon-glow: #7fc7ff; /* A soft blue for the app icon glow */
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+}
+
+/* Gray "Liquid" Background Effect (Subtle for Desktop) */
+.background-liquid-gray {
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    z-index: -1;
+    /* Soft, diffused gradients mimicking ambient light/smoke */
+    background:
+        radial-gradient(circle at 30% 70%, rgba(50,50,55,0.5) 0%, transparent 40%),
+        radial-gradient(circle at 70% 30%, rgba(40,40,45,0.4) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(30,30,35,0.6) 0%, transparent 50%);
+    background-size: 150% 150%;
+    animation: liquidGrayBackground 25s ease-in-out infinite alternate; /* Slower, more ambient */
+    filter: blur(80px) brightness(0.9); /* Less aggressive blur, subtle darkening */
+    transition: transform 0.2s ease-out; /* Added transition for mouse parallax */
+}
+
+@keyframes liquidGrayBackground {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+/* Refined Glassmorphism Base Styles for Desktop */
+.glass-nav,
+.glass-card {
+    background: var(--glass-background);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(25px) saturate(1.2); /* Enhanced blur, subtle saturation for depth */
+    -webkit-backdrop-filter: blur(25px) saturate(1.2);
+    box-shadow: 0 10px 40px var(--shadow-color); /* More pronounced, soft shadow */
+    border-radius: 12px; /* Standard macOS-like rounded corners */
+    position: relative;
+    overflow: hidden;
+    /* Adding subtle inner shadow for more glass depth */
+    box-shadow: 0 10px 40px var(--shadow-color), inset 0 0 8px rgba(255,255,255,0.02);
+    transition: all 0.3s ease-out; /* Unified transition for smoothness on hover */
+}
+
+.glass-nav::before,
+.glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg,
+        var(--highlight-color) 0%,
+        transparent 50%,
+        var(--highlight-color) 100%
+    );
+    opacity: 0.08; /* Very subtle highlight */
+    pointer-events: none;
+    transition: opacity 0.3s ease-out; /* Smoother highlight transition */
+}
+
+.glass-nav:hover::before,
+.glass-card:hover::before {
+    opacity: 0.15; /* Slightly more visible on hover */
+}
+
+/* Navigation */
+.glass-nav {
+    margin: 25px auto;
+    padding: 8px 18px;
+    width: fit-content;
+    border-radius: 14px; /* macOS control center pill style */
+}
+
+.glass-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 30px; /* Wider spacing for desktop */
+}
+
+.glass-nav a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: background 0.2s ease-out, color 0.2s ease-out; /* Smoother link hover */
+}
+
+.glass-nav a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+/* Main Content Wrapper (no changes here for fade-in anymore) */
+.main-content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px; /* Increased padding */
+    z-index: 5;
+}
+
+/* --- NEW: Page Load Element Animation --- */
+.animatable-onload {
+    opacity: 0; /* Starts hidden */
+    transform: translateY(20px); /* Starts slightly below its final position */
+    transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), /* Fade in smoothly */
+                transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Slide up smoothly */
+    transition-delay: var(--animation-delay, 0s); /* Will be set by JS for stagger effect */
+}
+
+.animatable-onload.loaded {
+    opacity: 1; /* Fully visible */
+    transform: translateY(0); /* Final position */
+}
+/* --- END NEW --- */
+
+
+/* Hero Section */
+.hero-section {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 80px; /* More space between text and image */
+    padding: 60px 80px; /* Generous padding */
+    max-width: 1200px; /* Wider layout */
+    width: 90%;
+    text-align: left;
+}
+
+.hero-text {
+    flex: 1;
+    min-width: 400px;
+}
+
+.hero-text h1 {
+    font-size: 3.2em; /* Larger, impactful heading */
+    margin-bottom: 25px;
+    font-weight: 700;
+    color: var(--heading-color);
+    line-height: 1.25;
+    text-shadow: 0 3px 6px rgba(0,0,0,0.3); /* Deeper text shadow */
+}
+
+.hero-text p {
+    font-size: 1.15em;
+    line-height: 1.7;
+    margin-bottom: 40px;
+    color: rgba(255,255,255,0.85);
+}
+
+/* macOS Notch Showcase */
+.notch-showcase-mac {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    perspective: 1000px;
+}
+
+.mac-screen-frame {
+    width: 550px; /* Represents a segment of a MacBook screen */
+    height: 350px;
+    background: var(--mac-screen-bg);
+    border-radius: 16px; /* Typical MacBook display corners */
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), inset 0 0 20px rgba(255,255,255,0.03);
+    position: relative;
+    overflow: hidden;
+    transform: rotateX(5deg) scale(0.98); /* Subtle tilt and slight scale for depth */
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smoother, more natural transition */
+}
+
+.mac-screen-frame:hover {
+    transform: rotateX(0deg) scale(1); /* Straighten on hover */
+}
+
+.mac-notch-area {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px; /* Width of the MacBook notch */
+    height: 25px; /* Height of the notch */
+    background-color: var(--mac-notch-color);
+    border-radius: 0 0 10px 10px; /* Rounded bottom corners */
+    z-index: 10; /* Ensure it's on top */
+    box-shadow: inset 0 -3px 8px rgba(0,0,0,0.7); /* Inner shadow for depth */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app-in-notch-mac {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Spacing for icon, name, status */
+    color: var(--notch-app-text);
+    font-size: 0.9em;
+    font-weight: 500;
+    opacity: 0; /* Hidden by default */
+    transform: translateY(-5px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out; /* Slower, smoother reveal */
+}
+
+.mac-screen-frame:hover .app-in-notch-mac {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.app-icon-mac {
+    font-size: 1.3em; /* Larger icon */
+    filter: drop-shadow(0 0 7px var(--app-icon-glow)); /* Enhanced glow */
+    transition: transform 0.4s ease-in-out; /* Added for JS pulse */
+}
+
+.app-name-mac {
+    font-weight: 600; /* Bolder app name */
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+.notch-status {
+    font-size: 0.8em;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+    opacity: 0;
+    transition: opacity 0.6s ease-out 0.2s; /* Slower, delayed fade in */
+}
+
+.mac-screen-frame:hover .notch-status {
+    opacity: 1;
+}
+
+.mac-screen-content {
+    width: 100%;
+    height: 100%;
+    padding-top: 40px; /* Space below notch */
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 15px; /* Spacing between preview texts */
+    color: var(--mac-text-color);
+    font-size: 0.95em;
+    line-height: 1.4;
+    padding-bottom: 20px; /* ensure some bottom padding */
+}
+
+.mac-preview-text {
+    background: rgba(255,255,255,0.05); /* Subtle background for text lines */
+    padding: 8px 15px;
+    border-radius: 8px;
+    width: 80%; /* Constrain width */
+    max-width: 450px;
+    text-align: left;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.ai-response {
+    color: var(--mac-ai-response);
+    font-weight: 500;
+}
+
+.mac-showcase-caption {
+    font-size: 0.9em;
+    color: rgba(255,255,255,0.6);
+    margin-top: 25px;
+    text-align: center;
+}
+
+
+/* General Content Cards (Inherits base glass-card styles) */
+.content-card {
+    padding: 50px;
+    max-width: 1000px;
+    width: 90%;
+    text-align: center;
+    margin: 30px auto;
+}
+
+.content-card h1 {
+    font-size: 2.5em;
+    color: var(--heading-color);
+    margin-bottom: 40px;
+    font-weight: 700;
+}
+
+.feature-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Slightly wider features */
+    gap: 35px; /* More space */
+    margin-top: 30px;
+}
+
+.feature-item {
+    background: rgba(255, 255, 255, 0.06); /* Subtle background */
+    border-radius: 10px;
+    padding: 30px;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.12); /* Slightly clearer inner border */
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), background 0.35s ease-out; /* Smoother feature item hover */
+}
+
+.feature-item:hover {
+    transform: translateY(-6px); /* More noticeable lift */
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.feature-item h2 {
+    font-size: 1.6em;
+    color: var(--heading-color);
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.feature-item p {
+    font-size: 1em;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+/* Buttons */
+.glass-button {
+    display: inline-block;
+    background: var(--button-background);
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    padding: 14px 30px; /* Larger padding */
+    font-size: 1.05em;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.3s ease-out, transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease-out; /* Smoother button transitions */
+    backdrop-filter: blur(15px); /* Moderate button blur */
+    -webkit-backdrop-filter: blur(15px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    font-weight: 500;
+}
+
+.glass-button:hover {
+    background: var(--button-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.glass-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.large-button {
+    padding: 16px 38px;
+    font-size: 1.15em;
+    border-radius: 12px; /* More rounded large buttons */
+}
+
+.download-buttons {
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.small-text {
+    font-size: 0.88em;
+    color: rgba(255,255,255,0.55);
+    margin-top: 15px;
+    line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .hero-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 50px;
+        padding: 50px 30px;
+    }
+
+    .hero-text {
+        order: 2;
+    }
+
+    .notch-showcase-mac {
+        order: 1;
+        margin-bottom: 20px;
+    }
+
+    .hero-text h1 {
+        font-size: 2.8em;
+    }
+
+    .mac-screen-frame {
+        width: 500px;
+        height: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .glass-nav ul {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .hero-section {
+        padding: 40px 20px;
+    }
+    .hero-text h1 {
+        font-size: 2.2em;
+    }
+    .mac-screen-frame {
+        width: 400px;
+        height: 250px;
+    }
+    .mac-notch-area {
+        width: 130px;
+        height: 22px;
+        border-radius: 0 0 8px 8px;
+    }
+    .app-in-notch-mac {
+        font-size: 0.8em;
+        gap: 6px;
+    }
+    .app-icon-mac {
+        font-size: 1.1em;
+    }
+    .notch-status {
+        font-size: 0.75em;
+        padding: 1px 5px;
+    }
+    .feature-list {
+        grid-template-columns: 1fr;
+    }
+    .content-card {
+        padding: 40px 20px;
+    }
+}
+
+@media (max-width: 500px) {
+    .glass-nav {
+        padding: 6px 10px;
+    }
+    .glass-nav ul {
+        gap: 8px;
+    }
+    .hero-text h1 {
+        font-size: 1.8em;
+    }
+    .mac-screen-frame {
+        width: 300px;
+        height: 190px;
+        border-radius: 12px;
+    }
+    .mac-notch-area {
+        width: 100px;
+        height: 20px;
+        border-radius: 0 0 6px 6px;
+    }
+    .mac-screen-content {
+        padding-top: 30px;
+        font-size: 0.85em;
+    }
+    .mac-preview-text {
+        width: 90%;
+        padding: 6px 10px;
+    }
+    .content-card {
+        padding: 30px 15px;
+    }
+    .large-button {
+        padding: 12px 25px;
+        font-size: 1em;
+    }
+}

@@ -136,7 +136,7 @@ body {
     z-index: 5;
 }
 
-/* --- NEW: Page Load Element Animation --- */
+/* --- Page Load Element Animation --- */
 .animatable-onload {
     opacity: 0; /* Starts hidden */
     transform: translateY(20px); /* Starts slightly below its final position */
@@ -269,48 +269,170 @@ body {
     opacity: 1;
 }
 
-.mac-screen-content {
-    width: 100%;
-    height: 100%;
-    padding-top: 40px; /* Space below notch */
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 15px; /* Spacing between preview texts */
-    color: var(--mac-text-color);
-    font-size: 0.95em;
-    line-height: 1.4;
-    padding-bottom: 20px; /* ensure some bottom padding */
-}
-
-.mac-preview-text {
-    background: rgba(255,255,255,0.05); /* Subtle background for text lines */
-    padding: 8px 15px;
-    border-radius: 8px;
-    width: 80%; /* Constrain width */
-    max-width: 450px;
-    text-align: left;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 5px;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-
-.ai-response {
-    color: var(--mac-ai-response);
-    font-weight: 500;
-}
-
 .mac-showcase-caption {
     font-size: 0.9em;
     color: rgba(255,255,255,0.6);
     margin-top: 25px;
     text-align: center;
 }
+
+
+/* --- Interactive AI Chat Styles --- */
+.mac-screen-content {
+    /* Ensure content is scrollable if chat gets long */
+    display: flex; /* Keep flex for overall layout */
+    flex-direction: column; /* Stack elements vertically */
+    justify-content: space-between; /* Push input to bottom, history to top */
+    overflow: hidden; /* Hide scrollbar for cleaner look, but enable internal scrolling if needed */
+    height: 100%; /* Ensure it takes full height of parent */
+    padding-top: 40px; /* Space below notch */
+    padding-bottom: 0; /* No bottom padding here, handled by chat-input-area */
+    box-sizing: border-box; /* Include padding in height calculation */
+}
+
+.chat-history {
+    flex-grow: 1; /* Allow chat history to take available space */
+    padding: 10px 15px;
+    overflow-y: auto; /* Enable vertical scrolling for chat history */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between messages */
+    padding-bottom: 60px; /* Space for input area - important for scroll */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(255,255,255,0.1) transparent; /* Firefox */
+}
+
+/* Custom scrollbar for Webkit browsers */
+.chat-history::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    border: 1px solid transparent;
+}
+
+
+.chat-message {
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 0.88em;
+    line-height: 1.4;
+    max-width: 85%;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    /* THIS IS THE KEY FOR LEFT ALIGNMENT OF AI MESSAGES */
+    align-self: flex-start; /* Default for AI message (left) */
+    color: var(--mac-text-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.user-message {
+    /* THIS IS THE KEY FOR RIGHT ALIGNMENT OF USER MESSAGES */
+    align-self: flex-end; /* Align user messages to the right */
+    background: rgba(136, 192, 208, 0.15);
+    color: #e0e0e0;
+}
+
+.ai-message .ai-response {
+    color: var(--mac-ai-response); /* Apply specific AI response color */
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 10px 15px;
+    background: var(--mac-screen-bg); /* Match screen background for seamless integration */
+    border-top: 1px solid rgba(255,255,255,0.05); /* Subtle separator */
+    position: absolute; /* Fix to bottom */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20; /* Ensure it's above chat history */
+}
+
+#aiInput {
+    flex-grow: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9em;
+    outline: none;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+#aiInput::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+#aiInput:focus {
+    border-color: var(--app-icon-glow); /* Highlight on focus */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 0 2px rgba(127, 199, 255, 0.2);
+}
+
+.small-button {
+    padding: 8px 15px; /* Smaller padding for chat button */
+    font-size: 0.85em;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+/* Loading Indicator */
+#aiLoading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    position: absolute;
+    bottom: 50px; /* Position above input */
+    left: 0;
+    right: 0;
+    z-index: 21; /* Above input if it needs to be */
+}
+
+#aiLoading.visible {
+    opacity: 1;
+}
+
+#aiLoading span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--mac-ai-response);
+    border-radius: 50%;
+    animation: bounce 0.6s infinite alternate;
+}
+
+#aiLoading span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+#aiLoading span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-5px);
+    }
+}
+/* --- END NEW --- */
 
 
 /* General Content Cards (Inherits base glass-card styles) */
@@ -436,6 +558,23 @@ body {
         width: 500px;
         height: 320px;
     }
+    .mac-screen-content {
+        padding-top: 30px; /* Adjust for smaller frame */
+    }
+    .chat-history {
+        padding-bottom: 50px; /* Adjust for smaller input area */
+    }
+    .chat-input-area {
+        padding: 8px 12px;
+    }
+    #aiInput {
+        padding: 8px 10px;
+        font-size: 0.85em;
+    }
+    .small-button {
+        padding: 6px 12px;
+        font-size: 0.8em;
+    }
 }
 
 @media (max-width: 768px) {
@@ -475,6 +614,23 @@ body {
     .content-card {
         padding: 40px 20px;
     }
+    .mac-screen-content {
+        padding-top: 25px; /* Adjust for smaller frame */
+    }
+    .chat-history {
+        padding-bottom: 45px; /* Adjust for smaller input area */
+    }
+    .chat-input-area {
+        padding: 6px 10px;
+    }
+    #aiInput {
+        padding: 6px 8px;
+        font-size: 0.8em;
+    }
+    .small-button {
+        padding: 5px 10px;
+        font-size: 0.75em;
+    }
 }
 
 @media (max-width: 500px) {
@@ -498,12 +654,22 @@ body {
         border-radius: 0 0 6px 6px;
     }
     .mac-screen-content {
-        padding-top: 30px;
-        font-size: 0.85em;
+        padding-top: 20px; /* Adjust for smaller frame */
     }
-    .mac-preview-text {
-        width: 90%;
-        padding: 6px 10px;
+    .chat-history {
+        padding-bottom: 40px; /* Adjust for smaller input area */
+        font-size: 0.8em; /* Smaller font for chat */
+    }
+    .chat-input-area {
+        padding: 5px 8px;
+    }
+    #aiInput {
+        padding: 5px 7px;
+        font-size: 0.75em;
+    }
+    .small-button {
+        padding: 4px 8px;
+        font-size: 0.7em;
     }
     .content-card {
         padding: 30px 15px;

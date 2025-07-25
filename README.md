@@ -3,7 +3,10 @@
 ## About
 I was very annoyed at having to switch windows and have a bunch of apps open just to use AI, so I created this, which makes use of the notch on newer Macs to launch a simple integration of llama.
 
-## Installation
+## Installation for Hackclub members (don't be a bad actor and use this if you are not a hackclub member, the whole service will be shut down and I will be sad)
+[Install the app](https://github.com/nanoticity/Notchly-AI/releases/tag/hackclub) and go to your Downloads folder. From there drag it into your applications folder and it is ready to use!
+
+## Installation for Non-hacklub members
 
 ### Ollama
 [Install this app](https://ollama.com) on your Mac and make sure you have at least 7gb of disk space left. Once this is installed drag it into your applications folder and launch it. 

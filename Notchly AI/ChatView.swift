@@ -200,18 +200,18 @@ struct ChatView: View {
         messages.append(ChatMessage(text: "", isUser: false))
         saveMessages() // Save messages after adding AI placeholder.
 
-        // Start a new Task to query Ollama asynchronously.
+        // Start a new Task to query Hack Club AI asynchronously.
         Task {
-            await queryOllama(trimmed) // Pass the latest input for context building
+            await queryHackClubAI(trimmed)
         }
     }
 
-    // Queries the Ollama API for a response, handling streaming.
-    func queryOllama(_ input: String) async {
-        // Ensure the URL is valid.
-        guard let url = URL(string: "http://127.0.0.1:11434/api/generate") else {
+    // Queries the Hack Club AI API for a response, handling streaming.
+    func queryHackClubAI(_ input: String) async {
+        // New Hack Club AI API URL
+        guard let url = URL(string: "https://ai.hackclub.com/chat/completions") else {
             await MainActor.run {
-                messages.append(ChatMessage(text: "Error: Invalid Ollama URL.", isUser: false))
+                messages.append(ChatMessage(text: "Error: Invalid Hack Club AI URL.", isUser: false))
                 saveMessages()
             }
             return
@@ -221,27 +221,32 @@ struct ChatView: View {
         // Adjust this value based on desired context length vs. response time.
         let maxHistoryMessages = 10 // Example: Keep the last 10 messages (5 user, 5 AI)
 
-        // Construct the full conversation history for the prompt
-        var fullPrompt = ""
+        // Construct messages array for Hack Club AI API
+        var messagesForAPI: [[String: String]] = []
         // Get the relevant subset of messages for context
         let historyForPrompt = messages.suffix(maxHistoryMessages)
 
         for message in historyForPrompt {
             // Only include messages that are not the current empty AI placeholder
             if message.text != "" || message.isUser {
-                fullPrompt += message.isUser ? "User: \(message.text)\n" : "AI: \(message.text)\n"
+                messagesForAPI.append([
+                    "role": message.isUser ? "user" : "assistant",
+                    "content": message.text
+                ])
             }
         }
-        // Add a clear indicator for the AI's turn to respond
-        fullPrompt += "AI:"
+        // Add the current user input as the last message for the API
+        messagesForAPI.append([
+            "role": "user",
+            "content": input
+        ])
         
-        print("Full prompt sent to Ollama:\n\(fullPrompt)") // Debug print: Show the full prompt
+        print("Messages sent to Hack Club AI:\n\(messagesForAPI)") // Debug print: Show the full prompt
 
-        // Prepare the request body.
+        // Prepare the request body for chat completions
         let body: [String: Any] = [
-            "model": "llama3",
-            "prompt": fullPrompt, // Use the full conversation history as the prompt
-            "stream": true // Crucial for streaming responses.
+            "messages": messagesForAPI,
+            "stream": true // Keep stream: true, assuming Hack Club API supports it or handles it gracefully
         ]
 
         var request = URLRequest(url: url)
@@ -266,20 +271,35 @@ struct ChatView: View {
                     print("Parsed JSON: \(json)") // Debug print: Show parsed JSON dictionary
                     
                     // Extract the 'response' part from the JSON.
-                    if let responseChunk = json["response"] as? String {
-                        responseText += responseChunk // Append to the full response.
-                        print("Appending response chunk: '\(responseChunk)'") // Debug print: Show extracted chunk
-                        
-                        // Update the UI on the MainActor.
-                        await MainActor.run {
-                            // Find the last message (which should be the AI placeholder)
-                            // and update its text.
-                            if var lastMessage = messages.last, !lastMessage.isUser {
-                                // Update the existing AI message.
-                                messages[messages.count - 1] = ChatMessage(text: responseText, isUser: false)
-                                print("UI updated with text: '\(responseText)'") // Debug print: Show current accumulated text
-                                // IMPORTANT: saveMessages() is NOT called here.
-                                // It will be called once at the end of the stream.
+                    // For OpenAI-compatible APIs, the content is typically in choices[0].delta.content or choices[0].message.content
+                    if let choices = json["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first {
+                        if let delta = firstChoice["delta"] as? [String: Any],
+                           let contentChunk = delta["content"] as? String {
+                            responseText += contentChunk // Append to the full response.
+                            print("Appending response chunk: '\(contentChunk)'") // Debug print: Show extracted chunk
+                            
+                            // Update the UI on the MainActor.
+                            await MainActor.run {
+                                // Find the last message (which should be the AI placeholder)
+                                // and update its text.
+                                if var lastMessage = messages.last, !lastMessage.isUser {
+                                    // Update the existing AI message.
+                                    messages[messages.count - 1] = ChatMessage(text: responseText, isUser: false)
+                                    print("UI updated with text: '\(responseText)'") // Debug print: Show current accumulated text
+                                    // IMPORTANT: saveMessages() is NOT called here.
+                                    // It will be called once at the end of the stream.
+                                }
+                            }
+                        } else if let messageDict = firstChoice["message"] as? [String: Any],
+                                  let contentChunk = messageDict["content"] as? String {
+                            // This path handles non-streaming responses where 'message' contains full content
+                            responseText = contentChunk // Replace, not append, for non-streaming full responses
+                            print("Received full message content: '\(contentChunk)'")
+                            await MainActor.run {
+                                if var lastMessage = messages.last, !lastMessage.isUser {
+                                    messages[messages.count - 1] = ChatMessage(text: responseText, isUser: false)
+                                }
                             }
                         }
                     }

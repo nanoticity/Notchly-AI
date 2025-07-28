@@ -36,7 +36,7 @@ struct MessageRowView: View {
                     .cornerRadius(8)
                     .textSelection(.enabled) // Make text selectable
             } else {
-                Text(message.text)
+                Text(.init(message.text))
                     .padding()
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
@@ -208,7 +208,6 @@ struct ChatView: View {
 
     // Queries the Hack Club AI API for a response, handling streaming.
     func queryHackClubAI(_ input: String) async {
-        // New Hack Club AI API URL
         guard let url = URL(string: "https://ai.hackclub.com/chat/completions") else {
             await MainActor.run {
                 messages.append(ChatMessage(text: "Error: Invalid Hack Club AI URL.", isUser: false))
@@ -217,17 +216,12 @@ struct ChatView: View {
             return
         }
 
-        // Define the maximum number of messages to include in the context.
-        // Adjust this value based on desired context length vs. response time.
-        let maxHistoryMessages = 10 // Example: Keep the last 10 messages (5 user, 5 AI)
+        let maxHistoryMessages = 10
 
-        // Construct messages array for Hack Club AI API
         var messagesForAPI: [[String: String]] = []
-        // Get the relevant subset of messages for context
         let historyForPrompt = messages.suffix(maxHistoryMessages)
 
         for message in historyForPrompt {
-            // Only include messages that are not the current empty AI placeholder
             if message.text != "" || message.isUser {
                 messagesForAPI.append([
                     "role": message.isUser ? "user" : "assistant",
@@ -235,18 +229,22 @@ struct ChatView: View {
                 ])
             }
         }
-        // Add the current user input as the last message for the API
+
+        messagesForAPI.append([
+            "role": "system",
+            "content": "You are a helpful AI assistant. Always use markdown to format your reponses, but you can only use **bold**, *italic* and [link](url) synthax. You may not use any other in any circumstances. Absolutely none of these!!! Headers are also stricly off limits."
+        ])
+
         messagesForAPI.append([
             "role": "user",
             "content": input
         ])
-        
-        print("Messages sent to Hack Club AI:\n\(messagesForAPI)") // Debug print: Show the full prompt
 
-        // Prepare the request body for chat completions
+        print("Messages sent to Hack Club AI:\n\(messagesForAPI)")
+
         let body: [String: Any] = [
             "messages": messagesForAPI,
-            "stream": true // Keep stream: true, assuming Hack Club API supports it or handles it gracefully
+            "stream": true
         ]
 
         var request = URLRequest(url: url)
@@ -254,48 +252,67 @@ struct ChatView: View {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
         do {
-            // Serialize the body to JSON data.
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            // Perform the network request and get a byte stream.
             let (bytes, _) = try await URLSession.shared.bytes(for: request)
 
-            var responseText = "" // Accumulate the streamed response.
-            
-            // Iterate over the lines of the byte stream.
-            // This loop will process each chunk of the streamed response.
+            var responseText = ""          // Accumulate the entire streamed response
+            var startedStreaming = false   // Track if </think> has appeared
+
             for try await line in bytes.lines {
-                print("Received line: \(line)") // Debug print: Show raw line from stream
+                print("Received line: \(line)")
+
                 if let data = line.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    print("Parsed JSON: \(json)") // Debug print: Show parsed JSON dictionary
-                    
-                    // Extract the 'response' part from the JSON.
-                    // For OpenAI-compatible APIs, the content is typically in choices[0].delta.content or choices[0].message.content
+
+                    print("Parsed JSON: \(json)")
+
                     if let choices = json["choices"] as? [[String: Any]],
                        let firstChoice = choices.first {
+
                         if let delta = firstChoice["delta"] as? [String: Any],
                            let contentChunk = delta["content"] as? String {
-                            responseText += contentChunk // Append to the full response.
-                            print("Appending response chunk: '\(contentChunk)'") // Debug print: Show extracted chunk
-                            
-                            // Update the UI on the MainActor.
-                            await MainActor.run {
-                                // Find the last message (which should be the AI placeholder)
-                                // and update its text.
-                                if var lastMessage = messages.last, !lastMessage.isUser {
-                                    // Update the existing AI message.
-                                    messages[messages.count - 1] = ChatMessage(text: responseText, isUser: false)
-                                    print("UI updated with text: '\(responseText)'") // Debug print: Show current accumulated text
-                                    // IMPORTANT: saveMessages() is NOT called here.
-                                    // It will be called once at the end of the stream.
+
+                            responseText += contentChunk
+
+                            if !startedStreaming {
+                                if let range = responseText.range(of: "</think>") {
+                                    startedStreaming = true
+
+                                    // Text after </think>
+                                    let afterThink = responseText[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+
+                                    await MainActor.run {
+                                        if var lastMessage = messages.last, !lastMessage.isUser {
+                                            messages[messages.count - 1] = ChatMessage(text: String(afterThink), isUser: false)
+                                        }
+                                    }
+                                } else {
+                                    // Haven't reached </think> yet - do not update UI
+                                    continue
+                                }
+                            } else {
+                                // Already started streaming after </think>, update UI normally with only the text after </think>
+                                await MainActor.run {
+                                    if var lastMessage = messages.last, !lastMessage.isUser {
+                                        if let range = responseText.range(of: """
+</think>
+
+
+""") {
+                                            let afterThink = responseText[range.upperBound...]
+                                            messages[messages.count - 1] = ChatMessage(text: String(afterThink), isUser: false)
+                                        } else {
+                                            // Defensive fallback
+                                            messages[messages.count - 1] = ChatMessage(text: responseText, isUser: false)
+                                        }
+                                    }
                                 }
                             }
                         } else if let messageDict = firstChoice["message"] as? [String: Any],
                                   let contentChunk = messageDict["content"] as? String {
-                            // This path handles non-streaming responses where 'message' contains full content
-                            responseText = contentChunk // Replace, not append, for non-streaming full responses
-                            print("Received full message content: '\(contentChunk)'")
+                            // Handle non-streaming full content
+                            responseText = contentChunk
                             await MainActor.run {
                                 if var lastMessage = messages.last, !lastMessage.isUser {
                                     messages[messages.count - 1] = ChatMessage(text: responseText, isUser: false)
@@ -303,27 +320,26 @@ struct ChatView: View {
                             }
                         }
                     }
-                    
-                    // Check if the stream is done.
+
                     if let done = json["done"] as? Bool, done {
-                        print("Stream finished.") // Debug print: Indicate end of stream
-                        break // Exit the loop if the response is complete.
+                        print("Stream finished.")
+                        break
                     }
                 } else {
-                    print("Failed to parse line as JSON: '\(line)'") // Debug print: Log malformed lines
+                    print("Failed to parse line as JSON: '\(line)'")
                 }
             }
-            // After the streaming is complete (or breaks), save the final state.
+
             await MainActor.run {
-                saveMessages() // Save messages only once after the full response is received.
-                print("Final messages saved.") // Debug print: Confirm final save
+                saveMessages()
+                print("Final messages saved.")
             }
+
         } catch {
-            // Handle any errors during the request or streaming.
             await MainActor.run {
                 messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false))
-                saveMessages() // Save error message.
-                print("Error during streaming: \(error.localizedDescription)") // Debug print: Log error
+                saveMessages()
+                print("Error during streaming: \(error.localizedDescription)")
             }
         }
     }

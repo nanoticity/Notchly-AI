@@ -61,6 +61,8 @@ struct ChatView: View {
     
     @State private var isAutoScrollEnabled = true // Controls automatic scrolling to the bottom.
     @State private var scrollViewOffset: CGFloat = .zero // State to hold the scroll view's offset.
+    
+    @FocusState private var focused: Bool
 
     // MARK: - Body
     var body: some View {
@@ -152,12 +154,19 @@ struct ChatView: View {
                     .onSubmit {
                         sendMessage() // Send message on pressing return key.
                     }
+                    .focused($focused)
 
                 Button("Send") {
                     sendMessage() // Send message on button tap.
                 }
                 // Disable send button if input text is empty or just whitespace.
                 .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .onAppear {
+                focused = true
+            }
+            .onDisappear {
+                focused = false
             }
             .padding() // Padding for the input and button HStack.
         }
@@ -232,7 +241,7 @@ struct ChatView: View {
 
         messagesForAPI.append([
             "role": "system",
-            "content": "You are a helpful AI assistant. Always use markdown to format your reponses, but you can only use **bold**, *italic* and [link](url) synthax. You may not use any other in any circumstances. Absolutely none of these!!! Headers are also stricly off limits."
+            "content": "You are a helpful AI assistant. Always use markdown to format your reponses, but you can only use **bold**, *italic* and [link](url) synthax. You may not use any other in any circumstances. Headers are also very stricly off limits. You may only use bold, italic, and link synthax. If you use any formatting besides a link, bold, or italic, rewrite the response. If you need to add emphasis use bolding and italic instead."
         ])
 
         messagesForAPI.append([

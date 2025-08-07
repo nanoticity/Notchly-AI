@@ -1,34 +1,40 @@
 import SwiftUI
-import AppKit // Required for NSPasteboard (clipboard access)
+import AppKit
 
 // MARK: - Models and Helper Views
 
-// ChatMessage model, now conforming to Codable
+// ChatMessage model, now with a new property for animation state
 struct ChatMessage: Identifiable, Hashable, Codable {
-    let id = UUID()
+    var id = UUID()
     var text: String
     var isUser: Bool
-    var isDisplayed: Bool = false // Track if already shown
+    var isAnimating: Bool = false
+    var isDisplayed: Bool = false
 }
 
 // View to animate word-by-word
 struct TypingTextView: View {
     let fullText: String
+    @Binding var isAnimating: Bool // Now a binding to control the state
     @State private var displayedWords: [String] = []
     @State private var currentIndex = 0
+    private let timer = Timer.publish(every: 0.02, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Text(displayedWords.joined(separator: " "))
-            .onAppear {
+            .onReceive(timer) { _ in
                 let words = fullText.components(separatedBy: " ")
-                Timer.scheduledTimer(withTimeInterval: 0.06, repeats: true) { timer in
-                    if currentIndex < words.count {
-                        displayedWords.append(words[currentIndex])
-                        currentIndex += 1
-                    } else {
-                        timer.invalidate()
-                    }
+                if currentIndex < words.count {
+                    displayedWords.append(words[currentIndex])
+                    currentIndex += 1
+                } else {
+                    timer.upstream.connect().cancel()
+                    isAnimating = false // Stop animating when done
                 }
+            }
+            .onAppear {
+                // Initialize the displayed words to an empty array so the animation starts from scratch
+                displayedWords = []
             }
     }
 }
@@ -52,8 +58,7 @@ struct GeneratingDotsView: View {
 
 // View for each chat message
 struct MessageRowView: View {
-    let message: ChatMessage
-    @Binding var messages: [ChatMessage]
+    @Binding var message: ChatMessage
 
     var body: some View {
         HStack(alignment: .top) {
@@ -72,18 +77,10 @@ struct MessageRowView: View {
                                 .scaleEffect(0.6)
                             GeneratingDotsView()
                         }
+                    } else if message.isAnimating {
+                        TypingTextView(fullText: message.text, isAnimating: $message.isAnimating)
                     } else {
-                        if message.isDisplayed {
-                            Text(.init(message.text)) // Instantly show if already displayed
-                        } else {
-                            TypingTextView(fullText: message.text)
-                                .onAppear {
-                                    // Mark as displayed after animation starts
-                                    if let index = messages.firstIndex(where: { $0.id == message.id }) {
-                                        messages[index].isDisplayed = true
-                                    }
-                                }
-                        }
+                        Text(.init(message.text))
                     }
                 }
                 .padding()
@@ -95,13 +92,6 @@ struct MessageRowView: View {
     }
 }
 
-// Example of appending a new message (defined but not currently called in the main flow)
-func appendAIResponse(_ text: String, to messages: inout [ChatMessage]) {
-    if let index = messages.lastIndex(where: { !$0.isUser && $0.text.isEmpty }) {
-        messages[index] = ChatMessage(text: text, isUser: false, isDisplayed: false)
-    }
-}
-
 // A PreferenceKey to store and pass the scroll view's offset.
 struct ViewOffsetKey: PreferenceKey {
     static var defaultValue: CGFloat = .zero
@@ -110,34 +100,23 @@ struct ViewOffsetKey: PreferenceKey {
     }
 }
 
-
 // MARK: - ChatView
-// The main SwiftUI View for the chat interface.
 struct ChatView: View {
-    // MARK: - State Properties
     @State private var inputText = ""
     @AppStorage("savedMessages") private var savedMessagesData: Data = Data()
     @State private var messages: [ChatMessage] = []
-
     @State private var isAutoScrollEnabled = true
-    @State private var scrollViewOffset: CGFloat = .zero
-
     @FocusState private var focused: Bool
 
-    // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar for Copy and Clear buttons
             chatToolbar
-
-            // ScrollViewReader allows programmatic scrolling.
+            
             ScrollViewReader { proxy in
                 chatHistoryView(proxy: proxy)
             }
 
             Divider()
-
-            // Input field and Send button.
             chatInput
         }
         .frame(width: 460, height: 360)
@@ -146,8 +125,7 @@ struct ChatView: View {
         .padding()
         .onAppear(perform: loadMessages)
     }
-
-    // The toolbar is now in its own clean property.
+    
     private var chatToolbar: some View {
         HStack {
             Button {
@@ -175,12 +153,12 @@ struct ChatView: View {
         .padding(.top, 8)
     }
     
-    // The complex ScrollView broken out to solve the "unable to type-check" error.
     private func chatHistoryView(proxy: ScrollViewProxy) -> some View {
         ScrollView {
             VStack(spacing: 8) {
-                ForEach(messages) { msg in
-                    MessageRowView(message: msg, messages: $messages)
+                // Binding to each message to allow it to be mutated
+                ForEach($messages) { $msg in
+                    MessageRowView(message: $msg)
                 }
             }
             .padding(.vertical)
@@ -220,7 +198,6 @@ struct ChatView: View {
         }
     }
     
-    // The input area is also in its own property for cleanliness.
     private var chatInput: some View {
         HStack {
             TextField("Ask me...", text: $inputText)
@@ -246,48 +223,45 @@ struct ChatView: View {
     
     // MARK: - Private Methods
     
-    // Saves the current messages array to AppStorage.
     private func saveMessages() {
         if let encoded = try? JSONEncoder().encode(messages) {
             savedMessagesData = encoded
         }
     }
 
-    // Loads messages and marks them as displayed to prevent re-animation.
     private func loadMessages() {
         guard let decoded = try? JSONDecoder().decode([ChatMessage].self, from: savedMessagesData) else { return }
-
         self.messages = decoded.map { message in
             var mutableMessage = message
             mutableMessage.isDisplayed = true
+            mutableMessage.isAnimating = false
             return mutableMessage
         }
     }
 
-    // Handles sending a message (user input).
     func sendMessage() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        // Add user message.
-        messages.append(ChatMessage(text: trimmed, isUser: true, isDisplayed: true)) // User messages are always displayed
+        messages.append(ChatMessage(text: trimmed, isUser: true, isAnimating: false, isDisplayed: true))
         inputText = ""
+        
+        let placeholderMessage = ChatMessage(text: "", isUser: false, isAnimating: true, isDisplayed: false)
+        messages.append(placeholderMessage)
 
-        // Add an empty AI message placeholder to be filled by the streaming response.
-        messages.append(ChatMessage(text: "", isUser: false))
-        saveMessages() // Save after adding messages
+        saveMessages()
 
-        // Start a new Task to query Hack Club AI asynchronously.
         Task {
-            await queryHackClubAI(trimmed)
+            await queryHackClubAI(trimmed, placeholderID: placeholderMessage.id)
         }
     }
 
-    // Queries the Hack Club AI API for a response.
-    func queryHackClubAI(_ input: String) async {
+    func queryHackClubAI(_ input: String, placeholderID: UUID) async {
         guard let url = URL(string: "https://ai.hackclub.com/chat/completions") else {
             await MainActor.run {
-                messages.append(ChatMessage(text: "Error: Invalid Hack Club AI URL.", isUser: false, isDisplayed: true))
+                if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
+                    messages[index] = ChatMessage(text: "Error: Invalid Hack Club AI URL.", isUser: false, isAnimating: false, isDisplayed: true)
+                }
                 saveMessages()
             }
             return
@@ -306,9 +280,8 @@ struct ChatView: View {
             }
         }
 
-        let systemPrompt = "You are a serious, professional, and factual assistant. Always use markdown to format your reponses, but you can only use **bold**, *italic* and [link](url) synthax. You may not use any other in any circumstances. Headers are also very stricly off limits. You may only use bold, italic, and link synthax. If you use any formatting besides a link, bold, or italic, rewrite the response. If you need to add emphasis use bolding and italic instead."
+        let systemPrompt = "You are a helpful AI assistant. Always use markdown to format your reponses, but you can only use **bold**, *italic* and [link](url) synthax. You may not use any other in any circumstances. Headers are also very stricly off limits. You may only use bold, italic, and link synthax. If you use any formatting besides a link, bold, or italic, rewrite the response. If you need to add emphasis use bolding and italic instead."
         
-        // Assembling the final request body
         let body: [String: Any] = [
             "messages": [["role": "system", "content": systemPrompt]] + messagesForAPI,
             "stream": false
@@ -320,9 +293,7 @@ struct ChatView: View {
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
             let (data, _) = try await URLSession.shared.data(for: request)
-
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 throw URLError(.cannotParseResponse)
             }
@@ -340,25 +311,21 @@ struct ChatView: View {
                 }
 
                 await MainActor.run {
-                    if let index = messages.lastIndex(where: { !$0.isUser && $0.text.isEmpty }) {
-                        // Update the placeholder with the response, isDisplayed will trigger animation
-                        messages[index] = ChatMessage(text: cleanedContent, isUser: false, isDisplayed: false)
-                    } else {
-                        messages.append(ChatMessage(text: cleanedContent, isUser: false, isDisplayed: false))
+                    if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
+                        messages[index].text = cleanedContent
+                        messages[index].isAnimating = true // Start the animation
+                        messages[index].isDisplayed = true // Mark as displayed
                     }
                     saveMessages()
                 }
-
             } else {
                 throw URLError(.badServerResponse)
             }
 
         } catch {
             await MainActor.run {
-                if let index = messages.lastIndex(where: { !$0.isUser && $0.text.isEmpty }) {
-                    messages[index] = ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false, isDisplayed: true)
-                } else {
-                    messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false, isDisplayed: true))
+                if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
+                    messages[index] = ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false, isAnimating: false, isDisplayed: true)
                 }
                 saveMessages()
                 print("❌ Error during request: \(error)")
@@ -366,7 +333,6 @@ struct ChatView: View {
         }
     }
 
-    // Function to copy only the last AI response to the pasteboard
     private func copyLastAIResponse() {
         if let lastAIMessage = messages.last(where: { !$0.isUser && !$0.text.isEmpty }) {
             NSPasteboard.general.clearContents()
@@ -377,7 +343,6 @@ struct ChatView: View {
         }
     }
 
-    // Function to clear all messages
     private func clearMessages() {
         withAnimation(.easeOut(duration: 0.3)) {
             messages = []

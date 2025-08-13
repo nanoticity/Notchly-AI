@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import MarkdownUI
 
 // MARK: - Models and Helper Views
 
@@ -21,7 +22,7 @@ struct TypingTextView: View {
     private let timer = Timer.publish(every: 0.02, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        Text(displayedWords.joined(separator: " "))
+        Markdown(displayedWords.joined(separator: " "))
             .onReceive(timer) { _ in
                 let words = fullText.components(separatedBy: " ")
                 if currentIndex < words.count {
@@ -62,31 +63,36 @@ struct MessageRowView: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            if message.isUser {
+            // AI Message
+            if !message.isUser {
+                Group {
+                    if message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        HStack(spacing: 8) {
+                            GeneratingDotsView()
+                        }
+                    } else if message.isAnimating {
+                        TypingTextView(fullText: message.text, isAnimating: $message.isAnimating)
+                    } else {
+                        Markdown(message.text)
+                    }
+                }
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(8)
+                // Add padding on the left side
+                .padding(.leading, 15)
+                Spacer()
+            }
+            // User Message
+            else {
                 Spacer()
                 Text(message.text)
                     .padding()
                     .background(Color.blue.opacity(0.7))
                     .foregroundColor(.white)
                     .cornerRadius(8)
-            } else {
-                Group {
-                    if message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .scaleEffect(0.6)
-                            GeneratingDotsView()
-                        }
-                    } else if message.isAnimating {
-                        TypingTextView(fullText: message.text, isAnimating: $message.isAnimating)
-                    } else {
-                        Text(.init(message.text))
-                    }
-                }
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(8)
-                Spacer()
+                    // Add padding on the right side
+                    .padding(.trailing, 15)
             }
         }
     }
@@ -280,7 +286,7 @@ struct ChatView: View {
             }
         }
 
-        let systemPrompt = "You are a helpful AI assistant. Always use markdown to format your reponses, but you can only use **bold**, *italic* and [link](url) synthax. You may not use any other in any circumstances. Headers are also very stricly off limits. You may only use bold, italic, and link synthax. If you use any formatting besides a link, bold, or italic, rewrite the response. If you need to add emphasis use bolding and italic instead."
+        let systemPrompt = "You are a helpful AI assistant. Always use markdown and only markdown to format your reponses."
         
         let body: [String: Any] = [
             "messages": [["role": "system", "content": systemPrompt]] + messagesForAPI,

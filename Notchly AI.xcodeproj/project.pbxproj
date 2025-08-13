@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0290DDCA2E45029D00E64016 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0290DDC92E45029D00E64016 /* MarkdownUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		028C82682E2E3FB8003EBC15 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -81,6 +85,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0290DDCA2E45029D00E64016 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,6 +112,7 @@
 				028C825B2E2E3FB7003EBC15 /* Notchly AI */,
 				028C826A2E2E3FB8003EBC15 /* Notchly AITests */,
 				028C82742E2E3FB8003EBC15 /* Notchly AIUITests */,
+				0290DDC82E45029D00E64016 /* Frameworks */,
 				028C825A2E2E3FB7003EBC15 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -120,6 +126,13 @@
 				028C82712E2E3FB8003EBC15 /* Notchly AIUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0290DDC82E45029D00E64016 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,6 +155,7 @@
 			);
 			name = "Notchly AI";
 			packageProductDependencies = (
+				0290DDC92E45029D00E64016 /* MarkdownUI */,
 			);
 			productName = "Notchly AI";
 			productReference = 028C82592E2E3FB7003EBC15 /* Notchly AI.app */;
@@ -225,6 +239,9 @@
 			);
 			mainGroup = 028C82502E2E3FB7003EBC15;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0290DDC72E45025C00E64016 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 028C825A2E2E3FB7003EBC15 /* Products */;
 			projectDirPath = "";
@@ -595,6 +612,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0290DDC72E45025C00E64016 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0290DDC92E45029D00E64016 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0290DDC72E45025C00E64016 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 028C82512E2E3FB7003EBC15 /* Project object */;
 }

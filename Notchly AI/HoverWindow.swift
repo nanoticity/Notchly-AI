@@ -11,6 +11,7 @@ class HoverWindow: NSWindow {
     // We're making the collapsedSize shorter to reduce interference.
     private let notchSize = CGSize(width: 219, height: 37) // Original notch visual size reference
     private var collapsedSize = CGSize(width: 219, height: 37) // Adjusted: Made collapsed window shorter
+    private var inBetween = CGSize(width: 250, height: 50)
     private let expandedSize = CGSize(width: 460, height: 360)
     
     override var canBecomeKey: Bool { true }

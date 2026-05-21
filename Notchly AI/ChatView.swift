@@ -251,85 +251,108 @@ struct ChatView: View {
 
         messages.append(ChatMessage(text: trimmed, isUser: true, isAnimating: false, isDisplayed: true))
         inputText = ""
-        
+
         let placeholderMessage = ChatMessage(text: "", isUser: false, isAnimating: true, isDisplayed: false)
         messages.append(placeholderMessage)
 
         saveMessages()
 
         Task {
-            await queryOllama(trimmed, placeholderID: placeholderMessage.id)
+            await queryOpenAI(trimmed, placeholderID: placeholderMessage.id)
         }
     }
 
-    func queryOllama(_ input: String, placeholderID: UUID) async {
-        guard let url = URL(string: "http://localhost:11434/api/generate") else {
-            await MainActor.run {
-                if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
-                    messages[index] = ChatMessage(text: "Error: Ollama is not running. Please start Ollama with 'ollama serve'.", isUser: false, isAnimating: false, isDisplayed: true)
-                }
-                saveMessages()
-            }
+    private static let openAIModel = "gpt-4o-mini"
+
+    func queryOpenAI(_ input: String, placeholderID: UUID) async {
+        let apiKey = (UserDefaults.standard.string(forKey: "openai_api_key") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !apiKey.isEmpty, let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+            await failPlaceholder(placeholderID, message: "Error: No OpenAI API key configured. Please relaunch the app to set one up.")
             return
         }
 
         let maxHistoryMessages = 10
         var messagesForAPI: [[String: String]] = []
-        let historyForPrompt = messages.suffix(maxHistoryMessages)
+        let historyForAPI = messages.suffix(maxHistoryMessages)
 
-        for message in historyForPrompt {
-            if !message.text.isEmpty || message.isUser {
-                messagesForAPI.append([
-                    "role": message.isUser ? "user" : "assistant",
-                    "content": message.text
-                ])
-            }
+        for message in historyForAPI {
+            // Skip the empty assistant placeholder we just appended.
+            if !message.isUser && message.text.isEmpty { continue }
+            messagesForAPI.append([
+                "role": message.isUser ? "user" : "assistant",
+                "content": message.text
+            ])
         }
 
-        // Convert messages to a single prompt for Ollama
-        let prompt = messagesForAPI.map { "\($0["role"]!): \($0["content"]!)" }.joined(separator: "\n")
-
         let body: [String: Any] = [
-            "model": "llama2", // Recommended light model
-            "prompt": prompt,
-            "stream": false
+            "model": ChatView.openAIModel,
+            "messages": messagesForAPI,
+            "stream": true
         ]
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, _) = try await URLSession.shared.data(for: request)
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                throw URLError(.cannotParseResponse)
+            let (bytes, response) = try await URLSession.shared.bytes(for: request)
+
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                await failPlaceholder(placeholderID, message: "Error: OpenAI returned status \(http.statusCode).")
+                return
             }
 
-            if let response = json["response"] as? String {
-                let cleanedContent = response.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Begin streaming display.
+            await MainActor.run {
+                if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
+                    messages[index].isDisplayed = true
+                    messages[index].isAnimating = false
+                }
+            }
+
+            for try await line in bytes.lines {
+                // SSE: ignore blanks and non-data lines.
+                guard line.hasPrefix("data:") else { continue }
+                let payload = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                if payload == "[DONE]" { break }
+                guard let data = payload.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let choices = json["choices"] as? [[String: Any]],
+                      let delta = choices.first?["delta"] as? [String: Any],
+                      let chunk = delta["content"] as? String,
+                      !chunk.isEmpty else {
+                    continue
+                }
 
                 await MainActor.run {
                     if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
-                        messages[index].text = cleanedContent
-                        messages[index].isAnimating = true // Start the animation
-                        messages[index].isDisplayed = true // Mark as displayed
+                        messages[index].text.append(chunk)
                     }
-                    saveMessages()
                 }
-            } else {
-                throw URLError(.badServerResponse)
             }
 
-        } catch {
             await MainActor.run {
                 if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
-                    messages[index] = ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false, isAnimating: false, isDisplayed: true)
+                    messages[index].text = messages[index].text.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
                 saveMessages()
-                print("❌ Error during request: \(error)")
             }
+        } catch {
+            await failPlaceholder(placeholderID, message: "Error: \(error.localizedDescription)")
+            print("❌ Error during request: \(error)")
         }
+    }
+
+    @MainActor
+    private func failPlaceholder(_ placeholderID: UUID, message: String) {
+        if let index = messages.firstIndex(where: { $0.id == placeholderID }) {
+            messages[index] = ChatMessage(text: message, isUser: false, isAnimating: false, isDisplayed: true)
+        }
+        saveMessages()
     }
 
     private func copyLastAIResponse() {
